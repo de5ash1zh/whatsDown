@@ -5,6 +5,7 @@ import { useAuth } from '@clerk/nextjs';
 import { format } from 'date-fns';
 import MessageInput from '@/components/MessageInput';
 import { useRealtime } from '@/contexts/RealtimeContext';
+import SettingsDrawer from '@/components/SettingsDrawer';
 
 interface Message {
   _id: string;
@@ -49,9 +50,10 @@ interface ChatWindowProps {
   chat: Chat;
   currentUser: User;
   onMessageSent?: (chatId: string, message: Message) => void;
+  onBack?: () => void; // mobile back to chat list
 }
 
-export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWindowProps) {
+export default function ChatWindow({ chat, currentUser, onMessageSent, onBack }: ChatWindowProps) {
   const { getToken } = useAuth();
   const { joinChat, leaveChat, onNewMessage, sendMessage } = useRealtime();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -59,6 +61,7 @@ export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWin
   const [typing, setTyping] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const otherParticipant = chat.participants.find(p => p.clerkId !== currentUser.id);
 
@@ -207,6 +210,18 @@ export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWin
       {/* Chat Header */}
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center">
+          {/* Mobile back button */}
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="md:hidden mr-3 rounded-lg p-2 hover:bg-gray-100 transition-colors"
+              aria-label="Back to chats"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
           <div className="relative">
             <img
               src={otherParticipant.avatar || '/default-avatar.png'}
@@ -225,14 +240,32 @@ export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWin
               {otherParticipant.isOnline ? 'Online' : 'Offline'}
             </p>
           </div>
+          <div className="ml-auto">
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="hidden md:inline-flex rounded-lg p-2 hover:bg-gray-100 transition-colors"
+              aria-label="Open settings"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.983 4.5a1.5 1.5 0 012.598-1.06l.53.53a1.5 1.5 0 001.06.44h.75a1.5 1.5 0 011.5 1.5v.75a1.5 1.5 0 00.44 1.06l.53.53a1.5 1.5 0 010 2.121l-.53.53a1.5 1.5 0 00-.44 1.06v.75a1.5 1.5 0 01-1.5 1.5h-.75a1.5 1.5 0 00-1.06.44l-.53.53a1.5 1.5 0 01-2.121 0l-.53-.53a1.5 1.5 0 00-1.06-.44h-.75a1.5 1.5 0 01-1.5-1.5v-.75a1.5 1.5 0 00-.44-1.06l-.53-.53a1.5 1.5 0 010-2.121l.53-.53a1.5 1.5 0 00.44-1.06v-.75a1.5 1.5 0 011.5-1.5h.75a1.5 1.5 0 001.06-.44l.53-.53a1.5 1.5 0 01.44-.34z" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Messages (scrollable only this pane) */}
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 bg-white">
         {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-gray-500">Loading messages...</div>
+          <div className="space-y-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
+                <div className={`max-w-[80%] md:max-w-[70%] px-3 py-2 rounded-xl border ${i % 2 === 0 ? 'bg-gray-100 border-gray-200' : 'bg-blue-500/10 border-blue-200'}`}>
+                  <div className="skeleton h-3 w-40 rounded mb-2" />
+                  <div className="skeleton h-3 w-24 rounded" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
@@ -256,7 +289,21 @@ export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWin
                       isOwn ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-900 border border-gray-200'
                     }`}
                   >
-                    <div className="text-sm">{message.content}</div>
+                    <div className="text-sm">
+                      {(() => {
+                        const c = String(message.content || '');
+                        const isDataImg = c.startsWith('data:image');
+                        const isImgLink = /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(c);
+                        if (isDataImg || isImgLink) {
+                          return (
+                            <a href={c} target="_blank" rel="noreferrer">
+                              <img src={c} alt="image" className={`rounded-lg ${isOwn ? '' : ''}`} style={{ maxHeight: 280 }} />
+                            </a>
+                          );
+                        }
+                        return <span>{c}</span>;
+                      })()}
+                    </div>
                     <div
                       className={`text-[11px] mt-1 flex items-center justify-end gap-1 ${
                         isOwn ? 'text-blue-100' : 'text-gray-500'
@@ -291,6 +338,9 @@ export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWin
       <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3">
         <MessageInput onSendMessage={handleSendMessage} onTyping={handleTyping} />
       </div>
+
+      {/* Settings Drawer */}
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

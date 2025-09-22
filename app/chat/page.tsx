@@ -8,6 +8,8 @@ import { useRealtime } from '@/contexts/RealtimeContext';
 import ChatSidebar from '@/components/ChatSidebar';
 import ChatWindow from '@/components/ChatWindow';
 import UserSearch from '@/components/UserSearch';
+import BottomTabBar, { BottomTab } from '@/components/BottomTabBar';
+import SettingsDrawer from '@/components/SettingsDrawer';
 
 interface Chat {
   _id: string;
@@ -38,6 +40,8 @@ export default function ChatPage() {
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [loading, setLoading] = useState(true);
   const [showUserSearch, setShowUserSearch] = useState(false);
+  const [activeTab, setActiveTab] = useState<BottomTab>('chats');
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -182,6 +186,7 @@ export default function ChatPage() {
     setSelectedChat(chat);
     joinChat(chat._id);
     focusChat(chat._id);
+    setActiveTab('chats');
   };
 
   const handleNewChat = async (recipientClerkId: string) => {
@@ -225,10 +230,19 @@ export default function ChatPage() {
     return null;
   }
 
+  const showListOnSmall = !selectedChat; // on small screens, show list first
+
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="h-screen bg-gray-100 flex max-w-screen-xl mx-auto w-full">
       {/* Sidebar */}
-      <div className="w-1/3 bg-white border-r border-gray-200 flex flex-col">
+      <div
+        className={`
+          ${showListOnSmall ? 'block' : 'hidden'}
+          lg:block
+          bg-white border-r border-gray-200 flex flex-col
+          w-full lg:w-[320px]
+        `}
+      >
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-semibold">Chats</h1>
@@ -279,11 +293,18 @@ export default function ChatPage() {
           selectedChat={selectedChat}
           onChatSelect={handleChatSelect}
           currentUserClerkId={user.id}
+          loading={loading}
         />
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div
+        className={`
+          ${showListOnSmall ? 'hidden' : 'flex'}
+          lg:flex
+          flex-1 flex-col
+        `}
+      >
         {selectedChat ? (
           <ChatWindow
             chat={selectedChat}
@@ -293,9 +314,10 @@ export default function ChatPage() {
               firstName: user.firstName || undefined,
               imageUrl: user.imageUrl
             }}
+            onBack={() => { setSelectedChat(null); focusChat(null); }}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
+          <div className="hidden lg:flex flex-1 items-center justify-center text-gray-500">
             <div className="text-center">
               <div className="text-4xl mb-4">💬</div>
               <div className="text-lg">Select a chat to start messaging</div>
