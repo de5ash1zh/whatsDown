@@ -8,9 +8,9 @@ interface RealtimeContextType {
   sendMessage: (chatId: string, receiverClerkId: string, message: any) => void;
   joinChat: (chatId: string) => void;
   leaveChat: (chatId: string) => void;
-  onNewMessage: (callback: (data: any) => void) => void;
-  onChatUpdate: (callback: (data: any) => void) => void;
-  onUserStatusChange: (callback: (data: any) => void) => void;
+  onNewMessage: (callback: (data: any) => void) => () => void;
+  onChatUpdate: (callback: (data: any) => void) => () => void;
+  onUserStatusChange: (callback: (data: any) => void) => () => void;
 }
 
 const RealtimeContext = createContext<RealtimeContextType>({
@@ -18,9 +18,9 @@ const RealtimeContext = createContext<RealtimeContextType>({
   sendMessage: () => {},
   joinChat: () => {},
   leaveChat: () => {},
-  onNewMessage: () => {},
-  onChatUpdate: () => {},
-  onUserStatusChange: () => {},
+  onNewMessage: () => () => {},
+  onChatUpdate: () => () => {},
+  onUserStatusChange: () => () => {},
 });
 
 export const useRealtime = () => {
@@ -135,7 +135,11 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   }, []);
 
   const onNewMessage = useCallback((callback: (data: any) => void) => {
-    setMessageCallbacks(prev => [...prev, callback]);
+    setMessageCallbacks(prev => {
+      // Avoid duplicate callbacks
+      if (prev.includes(callback)) return prev;
+      return [...prev, callback];
+    });
     
     // Return cleanup function
     return () => {
@@ -144,7 +148,10 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   }, []);
 
   const onChatUpdate = useCallback((callback: (data: any) => void) => {
-    setChatCallbacks(prev => [...prev, callback]);
+    setChatCallbacks(prev => {
+      if (prev.includes(callback)) return prev;
+      return [...prev, callback];
+    });
     
     return () => {
       setChatCallbacks(prev => prev.filter(cb => cb !== callback));
@@ -152,7 +159,10 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   }, []);
 
   const onUserStatusChange = useCallback((callback: (data: any) => void) => {
-    setStatusCallbacks(prev => [...prev, callback]);
+    setStatusCallbacks(prev => {
+      if (prev.includes(callback)) return prev;
+      return [...prev, callback];
+    });
     
     return () => {
       setStatusCallbacks(prev => prev.filter(cb => cb !== callback));

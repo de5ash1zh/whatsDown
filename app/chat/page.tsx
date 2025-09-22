@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useSocket } from '@/contexts/SocketContext';
+import { useRealtime } from '@/contexts/RealtimeContext';
 import ChatSidebar from '@/components/ChatSidebar';
 import ChatWindow from '@/components/ChatWindow';
 import UserSearch from '@/components/UserSearch';
@@ -32,7 +32,7 @@ export default function ChatPage() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
   const router = useRouter();
-  const { socket, isConnected } = useSocket();
+  const { isConnected, joinChat, leaveChat, onNewMessage, onChatUpdate } = useRealtime();
   
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
@@ -51,6 +51,83 @@ export default function ChatPage() {
     createUserProfile();
     fetchChats();
   }, [isLoaded, user, router]);
+
+  // Set up real-time listeners
+  useEffect(() => {
+    if (!user) return;
+
+    // Listen for new messages
+    const handleNewMessage = (data: any) => {
+      const { chatId, message } = data;
+      
+      // Update chat list with new last message
+      setChats(prev => prev.map(chat => 
+        chat._id === chatId 
+          ? { 
+              ...chat, 
+              lastMessage: {
+                content: message.content,
+                timestamp: message.timestamp,
+                senderName: message.senderId.username
+              },
+              updatedAt: new Date()
+            }
+          : chat
+      ).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+    };
+
+    // Listen for chat updates
+    const handleChatUpdate = (data: any) => {
+      const { chatId, lastMessage } = data;
+      
+      setChats(prev => prev.map(chat => 
+        chat._id === chatId 
+          ? { ...chat, lastMessage, updatedAt: new Date() }
+          : chat
+      ).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+    };
+
+    // Set up listeners
+    const unsubscribeMessage = onNewMessage(handleNewMessage);
+    const unsubscribeChat = onChatUpdate(handleChatUpdate);
+
+    return () => {
+      unsubscribeMessage();
+      unsubscribeChat();
+    };
+  }, [user, onNewMessage, onChatUpdate]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + K - Quick search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowUserSearch(true);
+      }
+      
+      // Escape - Close modals
+      if (e.key === 'Escape') {
+        setShowUserSearch(false);
+      }
+      
+      // Arrow keys for chat navigation
+      if (chats.length > 0 && !showUserSearch) {
+        const currentIndex = selectedChat ? chats.findIndex(c => c._id === selectedChat._id) : -1;
+        
+        if (e.key === 'ArrowUp' && currentIndex > 0) {
+          e.preventDefault();
+          handleChatSelect(chats[currentIndex - 1]);
+        } else if (e.key === 'ArrowDown' && currentIndex < chats.length - 1) {
+          e.preventDefault();
+          handleChatSelect(chats[currentIndex + 1]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [chats, selectedChat, showUserSearch]);
 
   const createUserProfile = async () => {
     if (!user) return;
@@ -100,9 +177,7 @@ export default function ChatPage() {
 
   const handleChatSelect = (chat: Chat) => {
     setSelectedChat(chat);
-    if (socket) {
-      socket.emit('chat:join', chat._id);
-    }
+    joinChat(chat._id);
   };
 
   const handleNewChat = async (recipientClerkId: string) => {
@@ -123,9 +198,7 @@ export default function ChatPage() {
         setSelectedChat(newChat);
         setShowUserSearch(false);
         
-        if (socket) {
-          socket.emit('chat:join', newChat._id);
-        }
+        joinChat(newChat._id);
       }
     } catch (error) {
       console.error('Error creating chat:', error);
@@ -134,8 +207,12 @@ export default function ChatPage() {
 
   if (!isLoaded || loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading WhatsDown</h2>
+          <p className="text-gray-600">Setting up your conversations...</p>
+        </div>
       </div>
     );
   }
@@ -153,9 +230,11 @@ export default function ChatPage() {
             <h1 className="text-xl font-semibold">Chats</h1>
             <button
               onClick={() => setShowUserSearch(true)}
-              className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600"
+              className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 flex items-center space-x-2"
+              title="Keyboard shortcut: Cmd/Ctrl + K"
             >
-              New Chat
+              <span>New Chat</span>
+              <kbd className="bg-blue-600 text-xs px-1 py-0.5 rounded">⌘K</kbd>
             </button>
           </div>
           <div className="flex items-center justify-between mt-2">
@@ -207,7 +286,6 @@ export default function ChatPage() {
               firstName: user.firstName || undefined,
               imageUrl: user.imageUrl
             }}
-            socket={socket}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-500">

@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Socket } from 'socket.io-client';
 import { format } from 'date-fns';
 import MessageInput from '@/components/MessageInput';
+import { useRealtime } from '@/contexts/RealtimeContext';
 
 interface Message {
   _id: string;
@@ -48,18 +48,27 @@ interface User {
 interface ChatWindowProps {
   chat: Chat;
   currentUser: User;
-  socket: Socket | null;
   onMessageSent?: (chatId: string, message: Message) => void;
 }
 
-export default function ChatWindow({ chat, currentUser, socket, onMessageSent }: ChatWindowProps) {
+export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWindowProps) {
   const { getToken } = useAuth();
+  const { joinChat, leaveChat, onNewMessage, sendMessage } = useRealtime();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [typing, setTyping] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const otherParticipant = chat.participants.find(p => p.clerkId !== currentUser.id);
+
+  // Helpers
+  const dedupeAndSort = (list: Message[]) => {
+    const map = new Map<string, Message>();
+    for (const m of list) map.set(m._id, m);
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+  };
 
   useEffect(() => {
     if (chat._id) {
@@ -71,61 +80,22 @@ export default function ChatWindow({ chat, currentUser, socket, onMessageSent }:
     scrollToBottom();
   }, [messages]);
 
+  // Join/leave chat room and subscribe to realtime new messages (polling-based)
   useEffect(() => {
-    if (!socket) return;
+    if (!chat._id) return;
+    joinChat(chat._id);
 
-    // Listen for new messages
-    const handleNewMessage = (data: any) => {
-      if (data.chatId === chat._id) {
-        setMessages(prev => [...prev, data.message]);
-        
-        // Mark message as delivered
-        if (data.message.senderId.clerkId !== currentUser.id) {
-          socket.emit('message:status', {
-            messageId: data.message._id,
-            status: 'delivered',
-            senderClerkId: data.message.senderId.clerkId,
-          });
-        }
+    const unsubscribe = onNewMessage((data: any) => {
+      if (data.chatId === chat._id && data.message) {
+        setMessages(prev => dedupeAndSort([...prev, data.message]));
       }
-    };
-
-    // Listen for message status updates
-    const handleMessageStatusUpdate = (data: any) => {
-      setMessages(prev => 
-        prev.map(msg => 
-          msg._id === data.messageId 
-            ? { ...msg, status: data.status }
-            : msg
-        )
-      );
-    };
-
-    // Listen for typing indicators
-    const handleTypingStart = (data: any) => {
-      if (data.chatId === chat._id && data.userClerkId !== currentUser.id) {
-        setTyping(data.username);
-      }
-    };
-
-    const handleTypingStop = (data: any) => {
-      if (data.chatId === chat._id && data.userClerkId !== currentUser.id) {
-        setTyping(null);
-      }
-    };
-
-    socket.on('message:new', handleNewMessage);
-    socket.on('message:status:update', handleMessageStatusUpdate);
-    socket.on('typing:start', handleTypingStart);
-    socket.on('typing:stop', handleTypingStop);
+    });
 
     return () => {
-      socket.off('message:new', handleNewMessage);
-      socket.off('message:status:update', handleMessageStatusUpdate);
-      socket.off('typing:start', handleTypingStart);
-      socket.off('typing:stop', handleTypingStop);
+      unsubscribe();
+      leaveChat(chat._id);
     };
-  }, [socket, chat._id, currentUser.id]);
+  }, [chat._id, joinChat, leaveChat, onNewMessage]);
 
   const fetchMessages = async () => {
     try {
@@ -139,7 +109,7 @@ export default function ChatWindow({ chat, currentUser, socket, onMessageSent }:
 
       if (response.ok) {
         const data = await response.json();
-        setMessages(data.messages);
+        setMessages(dedupeAndSort(data.messages || []));
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -168,41 +138,24 @@ export default function ChatWindow({ chat, currentUser, socket, onMessageSent }:
 
       if (response.ok) {
         const newMessage = await response.json();
-        setMessages(prev => [...prev, newMessage]);
+        setMessages(prev => dedupeAndSort([...prev, newMessage]));
 
         // Call the callback to update parent component
         if (onMessageSent) {
           onMessageSent(chat._id, newMessage);
         }
-
-        // Emit via socket for real-time delivery
-        if (socket) {
-          socket.emit('message:send', {
-            chatId: chat._id,
-            receiverClerkId: otherParticipant.clerkId,
-            message: newMessage,
-          });
-        }
+        // Notify realtime layer (no-op in polling mode, safe to call)
+        sendMessage(chat._id, otherParticipant.clerkId, newMessage);
       }
     } catch (error) {
       console.error('Error sending message:', error);
     }
   };
 
-  const handleTyping = (isTyping: boolean) => {
-    if (!socket || !otherParticipant) return;
-
-    if (isTyping) {
-      socket.emit('typing:start', {
-        chatId: chat._id,
-        receiverClerkId: otherParticipant.clerkId,
-      });
-    } else {
-      socket.emit('typing:stop', {
-        chatId: chat._id,
-        receiverClerkId: otherParticipant.clerkId,
-      });
-    }
+  const handleTyping = (_isTyping: boolean) => {
+    // Typing indicators are not propagated in polling mode.
+    // Kept for UI responsiveness, but no backend call.
+    return;
   };
 
   const scrollToBottom = () => {
