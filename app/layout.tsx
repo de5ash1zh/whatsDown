@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from '@clerk/nextjs';
 import { RealtimeProvider } from '@/contexts/RealtimeContext';
 import TopAccentSweep from '@/components/TopAccentSweep';
+import TopBar from '@/components/TopBar';
+import { SettingsProvider } from '@/contexts/SettingsContext';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,10 +33,13 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <RealtimeProvider>
-            <TopAccentSweep />
-            {children}
-          </RealtimeProvider>
+          <SettingsProvider>
+            <RealtimeProvider>
+              <TopAccentSweep />
+              <TopBar />
+              <div className="pt-12">{children}</div>
+            </RealtimeProvider>
+          </SettingsProvider>
         </body>
       </html>
     </ClerkProvider>
