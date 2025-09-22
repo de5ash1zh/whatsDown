@@ -59,11 +59,18 @@ NEXT_PUBLIC_APP_URL=https://your-domain.com
 1. Go to [Clerk Dashboard](https://dashboard.clerk.com/)
 2. Create a new application
 3. Copy the publishable key and secret key to your `.env.local`
-4. Configure sign-in/sign-up pages:
-   - Sign-in URL: `/sign-in`
-   - Sign-up URL: `/sign-up`
-   - After sign-in URL: `/chat`
-   - After sign-up URL: `/chat`
+4. Configure the following URLs in Clerk Dashboard:
+   - **Sign-in URL**: `/sign-in`
+   - **Sign-up URL**: `/sign-up`
+   - **After sign-in URL**: `/chat`
+   - **After sign-up URL**: `/chat`
+   - **User Profile URL**: `/profile`
+
+The application uses Clerk's built-in UI components for:
+- ✅ **Sign In Page** (`/sign-in`) - Fully styled authentication form
+- ✅ **Sign Up Page** (`/sign-up`) - Registration with email verification
+- ✅ **User Profile** (`/profile`) - Complete profile management
+- ✅ **Session Management** - Automatic token refresh and security
 
 ### 4. MongoDB Setup
 
@@ -98,6 +105,9 @@ my-app/
 │   │   ├── messages/       # Message API
 │   │   └── socket/         # Socket.io setup
 │   ├── chat/               # Main chat interface
+│   ├── sign-in/            # Clerk sign-in page
+│   ├── sign-up/            # Clerk sign-up page
+│   ├── profile/            # Clerk user profile page
 │   ├── layout.tsx          # Root layout with providers
 │   └── page.tsx            # Landing page
 ├── components/

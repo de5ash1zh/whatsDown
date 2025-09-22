@@ -19,6 +19,7 @@ interface Chat {
     senderName: string;
   };
   updatedAt: Date;
+  unreadCount?: number;
 }
 
 interface ChatSidebarProps {
@@ -96,7 +97,7 @@ export default function ChatSidebar({
                     </div>
                     
                     <div className="flex items-center justify-between mt-1">
-                      <p className="text-sm text-gray-600 truncate">
+                      <p className="text-sm text-gray-600 truncate flex-1">
                         {chat.lastMessage ? (
                           <>
                             <span className="font-medium">
@@ -108,6 +109,11 @@ export default function ChatSidebar({
                           <span className="italic">No messages yet</span>
                         )}
                       </p>
+                      {chat.unreadCount && chat.unreadCount > 0 && (
+                        <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1 ml-2 min-w-[20px] text-center">
+                          {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+                        </span>
+                      )}
                     </div>
                     
                     {!otherParticipant.isOnline && (

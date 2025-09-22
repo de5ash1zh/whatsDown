@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from '@clerk/nextjs';
-import { SocketProvider } from '@/contexts/SocketContext';
+import { RealtimeProvider } from '@/contexts/RealtimeContext';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,9 +30,9 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <SocketProvider>
+          <RealtimeProvider>
             {children}
-          </SocketProvider>
+          </RealtimeProvider>
         </body>
       </html>
     </ClerkProvider>

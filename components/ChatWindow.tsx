@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { Socket } from 'socket.io-client';
 import { format } from 'date-fns';
-import MessageInput from './MessageInput';
+import MessageInput from '@/components/MessageInput';
 
 interface Message {
   _id: string;
@@ -49,9 +49,10 @@ interface ChatWindowProps {
   chat: Chat;
   currentUser: User;
   socket: Socket | null;
+  onMessageSent?: (chatId: string, message: Message) => void;
 }
 
-export default function ChatWindow({ chat, currentUser, socket }: ChatWindowProps) {
+export default function ChatWindow({ chat, currentUser, socket, onMessageSent }: ChatWindowProps) {
   const { getToken } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -168,6 +169,11 @@ export default function ChatWindow({ chat, currentUser, socket }: ChatWindowProp
       if (response.ok) {
         const newMessage = await response.json();
         setMessages(prev => [...prev, newMessage]);
+
+        // Call the callback to update parent component
+        if (onMessageSent) {
+          onMessageSent(chat._id, newMessage);
+        }
 
         // Emit via socket for real-time delivery
         if (socket) {

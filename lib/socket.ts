@@ -126,6 +126,17 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
         });
       });
 
+      // Handle chat updates (for last message sync)
+      socket.on('chat:update', (data) => {
+        const { chatId, lastMessage } = data;
+        
+        // Broadcast to all participants in the chat
+        socket.to(`chat:${chatId}`).emit('chat:update', {
+          chatId,
+          lastMessage,
+        });
+      });
+
       // Handle message status updates
       socket.on('message:status', (data) => {
         const { messageId, status, senderClerkId } = data;

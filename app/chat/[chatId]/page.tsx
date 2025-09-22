@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSocket } from '@/contexts/SocketContext';
-import ChatSidebar from '@/components/ChatSidebar';
 import ChatWindow from '@/components/ChatWindow';
+import ChatSidebar from '@/components/ChatSidebar';
 import UserSearch from '@/components/UserSearch';
 
 interface Chat {
@@ -32,12 +32,14 @@ export default function ChatPage() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
   const router = useRouter();
+  const params = useParams();
   const { socket, isConnected } = useSocket();
   
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [loading, setLoading] = useState(true);
   const [showUserSearch, setShowUserSearch] = useState(false);
+  const chatId = params.chatId as string;
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -51,6 +53,72 @@ export default function ChatPage() {
     createUserProfile();
     fetchChats();
   }, [isLoaded, user, router]);
+
+  useEffect(() => {
+    if (chats.length > 0 && chatId) {
+      const chat = chats.find(c => c._id === chatId);
+      if (chat) {
+        setSelectedChat(chat);
+        if (socket) {
+          socket.emit('chat:join', chat._id);
+        }
+      } else {
+        // Chat not found, redirect to main chat page
+        router.push('/chat');
+      }
+    }
+  }, [chats, chatId, socket, router]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    // Listen for real-time chat updates
+    const handleChatUpdate = (data: any) => {
+      setChats(prev => {
+        const updatedChats = prev.map(chat => 
+          chat._id === data.chatId 
+            ? { ...chat, lastMessage: data.lastMessage, updatedAt: new Date() }
+            : chat
+        );
+        return updatedChats.sort((a, b) => 
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+      });
+    };
+
+    // Listen for user status updates
+    const handleUserOnline = (data: any) => {
+      setChats(prev => prev.map(chat => ({
+        ...chat,
+        participants: chat.participants.map(p => 
+          p.clerkId === data.clerkId 
+            ? { ...p, isOnline: true }
+            : p
+        )
+      })));
+    };
+
+    const handleUserOffline = (data: any) => {
+      setChats(prev => prev.map(chat => ({
+        ...chat,
+        participants: chat.participants.map(p => 
+          p.clerkId === data.clerkId 
+            ? { ...p, isOnline: false, lastSeen: new Date() }
+            : p
+        )
+      })));
+    };
+
+    socket.on('chat:update', handleChatUpdate);
+    socket.on('user:online', handleUserOnline);
+    socket.on('user:offline', handleUserOffline);
+
+    return () => {
+      socket.off('chat:update', handleChatUpdate);
+      socket.off('user:online', handleUserOnline);
+      socket.off('user:offline', handleUserOffline);
+    };
+  }, [socket]);
 
   const createUserProfile = async () => {
     if (!user) return;
@@ -99,10 +167,7 @@ export default function ChatPage() {
   };
 
   const handleChatSelect = (chat: Chat) => {
-    setSelectedChat(chat);
-    if (socket) {
-      socket.emit('chat:join', chat._id);
-    }
+    router.push(`/chat/${chat._id}`);
   };
 
   const handleNewChat = async (recipientClerkId: string) => {
@@ -120,15 +185,45 @@ export default function ChatPage() {
       if (response.ok) {
         const newChat = await response.json();
         setChats(prev => [newChat, ...prev]);
-        setSelectedChat(newChat);
         setShowUserSearch(false);
-        
-        if (socket) {
-          socket.emit('chat:join', newChat._id);
-        }
+        router.push(`/chat/${newChat._id}`);
       }
     } catch (error) {
       console.error('Error creating chat:', error);
+    }
+  };
+
+  const handleMessageSent = (chatId: string, lastMessage: any) => {
+    // Update chat list with new last message
+    setChats(prev => {
+      const updatedChats = prev.map(chat => 
+        chat._id === chatId 
+          ? { 
+              ...chat, 
+              lastMessage: {
+                content: lastMessage.content,
+                timestamp: lastMessage.timestamp,
+                senderName: user?.username || user?.firstName || 'You'
+              },
+              updatedAt: new Date()
+            }
+          : chat
+      );
+      return updatedChats.sort((a, b) => 
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+    });
+
+    // Emit chat update via socket
+    if (socket) {
+      socket.emit('chat:update', {
+        chatId,
+        lastMessage: {
+          content: lastMessage.content,
+          timestamp: lastMessage.timestamp,
+          senderName: user?.username || user?.firstName || 'User'
+        }
+      });
     }
   };
 
@@ -208,6 +303,7 @@ export default function ChatPage() {
               imageUrl: user.imageUrl
             }}
             socket={socket}
+            onMessageSent={handleMessageSent}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-500">
