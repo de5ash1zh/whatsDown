@@ -89,7 +89,7 @@ export default function ChatSidebar({
                 <div
                   key={chat._id}
                   onClick={() => onChatSelect(chat)}
-                  className={`p-3 cursor-pointer transition-all duration-200 rounded-lg group relative ${
+                  className={`chat-item p-3 cursor-pointer transition-all duration-200 rounded-lg group relative ${
                     isSelected 
                       ? 'bg-blue-500 text-white shadow-lg' 
                       : 'hover:bg-gray-50 hover:shadow-sm'

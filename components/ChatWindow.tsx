@@ -263,7 +263,7 @@ export default function ChatWindow({ chat, currentUser, onMessageSent, onBack }:
           <div className="space-y-3">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
-                <div className={`max-w-[80%] md:max-w-[70%] px-3 py-2 rounded-xl border ${i % 2 === 0 ? 'bg-gray-100 border-gray-200' : 'bg-blue-500/10 border-blue-200'}`}>
+                <div className={`chat-bubble max-w-[80%] md:max-w-[70%] px-3 py-2 rounded-xl border ${i % 2 === 0 ? 'bg-gray-100 border-gray-200' : 'bg-blue-500/10 border-blue-200'}`}>
                   <div className="skeleton h-3 w-40 rounded mb-2" />
                   <div className="skeleton h-3 w-24 rounded" />
                 </div>
@@ -285,10 +285,10 @@ export default function ChatWindow({ chat, currentUser, onMessageSent, onBack }:
               return (
                 <div
                   key={message._id}
-                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'} fade-in-up`}
                 >
                   <div
-                    className={`max-w-[80%] md:max-w-[70%] px-3 py-2 rounded-xl shadow-sm ${
+                    className={`chat-bubble max-w-[80%] md:max-w-[70%] px-3 py-2 rounded-xl shadow-sm ${
                       isOwn ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-900 border border-gray-200'
                     }`}
                   >
@@ -326,7 +326,7 @@ export default function ChatWindow({ chat, currentUser, onMessageSent, onBack }:
             
             {typing && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 text-gray-800 max-w-[70%] px-3 py-2 rounded-xl border border-gray-200">
+                <div className="chat-bubble bg-gray-100 text-gray-800 max-w-[70%] px-3 py-2 rounded-xl border border-gray-200">
                   <div className="text-sm italic">{typing} is typing...</div>
                 </div>
               </div>
