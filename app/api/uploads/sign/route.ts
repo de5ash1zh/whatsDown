@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { randomUUID } from 'crypto';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+// Force Node.js runtime (AWS SDK not supported on edge)
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,10 +17,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const s3 = new S3Client({ region, credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-    }});
+    if (!type || !type.startsWith('image/')) {
+      return new Response(JSON.stringify({ error: 'Only image uploads are allowed.' }), { status: 400 });
+    }
+
+    const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+
+    const s3 = new S3Client({
+      region,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      },
+    });
 
     const ext = name?.split('.').pop()?.toLowerCase() || 'bin';
     const key = `uploads/${new Date().toISOString().slice(0,10)}/${randomUUID()}.${ext}`;
