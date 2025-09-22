@@ -234,7 +234,7 @@ export default function ChatPage() {
   const showListOnSmall = !selectedChat; // on small screens, show list first
 
   return (
-    <div className="h-screen bg-gray-100 flex max-w-screen-xl mx-auto w-full">
+    <div className="h-screen bg-gray-100 flex max-w-screen-xl mx-auto w-full min-h-0">
       {/* Sidebar */}
       <div
         className={`
@@ -305,7 +305,7 @@ export default function ChatPage() {
         className={`
           ${showListOnSmall ? 'hidden' : 'flex'}
           lg:flex
-          flex-1 flex-col
+          flex-1 flex-col min-w-0 min-h-0
         `}
       >
         {selectedChat ? (
