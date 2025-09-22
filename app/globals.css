@@ -36,6 +36,12 @@ body {
   animation: top-sweep 2.2s infinite;
 }
 
+/* Respect reduce-motion setting */
+.reduce-motion .top-sweep { animation: none; }
+.reduce-motion .fade-in-up { animation: none; }
+.reduce-motion .slide-fade-right { animation: none; }
+.reduce-motion .unread-dot { animation: none; }
+
 /* Motion defaults for a pro feel */
 .hover-raise {
   transform: translateY(0);
@@ -75,3 +81,9 @@ body {
 /* Unread dot pulse then fade */
 @keyframes unread-pulse-fade { 0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.6); opacity: 1; } 80% { box-shadow: 0 0 0 8px rgba(59,130,246,0); opacity: .9;} 100% { opacity: 0.6; } }
 .unread-dot { width: 8px; height: 8px; border-radius: 9999px; background:#3b82f6; animation: unread-pulse-fade 1200ms ease-out; }
+.no-unread-glow .unread-dot { animation: none; }
+
+/* Compact density adjustments */
+.compact-density .chat-item { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.compact-density .chat-bubble { padding: 0.35rem 0.5rem; }
+.compact-density .chat-header { padding: 0.5rem 1rem; }

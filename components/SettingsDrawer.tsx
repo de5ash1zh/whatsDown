@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useSettings } from "@/contexts/SettingsContext";
 
 type SettingsDrawerProps = {
   open: boolean;
@@ -8,6 +9,7 @@ type SettingsDrawerProps = {
 };
 
 export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
+  const { reduceMotion, compactDensity, unreadGlow, setReduceMotion, setCompactDensity, setUnreadGlow } = useSettings();
   return (
     <div
       className={`fixed inset-0 z-[200] ${open ? '' : 'pointer-events-none'}`}
@@ -49,8 +51,11 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               <div className="text-sm font-medium text-gray-900">Reduce motion</div>
               <div className="text-xs text-gray-500">Minimize animations for performance</div>
             </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 transition-colors dur-200 ease-standard">
-              <span className="inline-block h-5 w-5 transform rounded-full bg-white shadow ring-1 ring-gray-300 transition dur-200 ease-standard translate-x-0" />
+            <button
+              onClick={() => setReduceMotion(!reduceMotion)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors dur-200 ease-standard ${reduceMotion ? 'bg-blue-500/20' : 'bg-gray-200'}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full shadow transition dur-200 ease-standard ${reduceMotion ? 'translate-x-5 bg-blue-500' : 'translate-x-0 bg-white ring-1 ring-gray-300'}`} />
             </button>
           </div>
 
@@ -60,8 +65,11 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               <div className="text-sm font-medium text-gray-900">Compact density</div>
               <div className="text-xs text-gray-500">Smaller paddings in list and bubbles</div>
             </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-blue-500/20 transition-colors dur-200 ease-standard">
-              <span className="inline-block h-5 w-5 transform rounded-full bg-blue-500 shadow transition dur-200 ease-standard translate-x-5" />
+            <button
+              onClick={() => setCompactDensity(!compactDensity)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors dur-200 ease-standard ${compactDensity ? 'bg-blue-500/20' : 'bg-gray-200'}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full shadow transition dur-200 ease-standard ${compactDensity ? 'translate-x-5 bg-blue-500' : 'translate-x-0 bg-white ring-1 ring-gray-300'}`} />
             </button>
           </div>
 
@@ -71,8 +79,11 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               <div className="text-sm font-medium text-gray-900">Unread glow</div>
               <div className="text-xs text-gray-500">Animate unread indicators</div>
             </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-blue-500/20 transition-colors dur-200 ease-standard">
-              <span className="inline-block h-5 w-5 transform rounded-full bg-blue-500 shadow transition dur-200 ease-standard translate-x-5" />
+            <button
+              onClick={() => setUnreadGlow(!unreadGlow)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors dur-200 ease-standard ${unreadGlow ? 'bg-blue-500/20' : 'bg-gray-200'}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full shadow transition dur-200 ease-standard ${unreadGlow ? 'translate-x-5 bg-blue-500' : 'translate-x-0 bg-white ring-1 ring-gray-300'}`} />
             </button>
           </div>
         </div>

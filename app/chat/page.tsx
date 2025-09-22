@@ -10,6 +10,7 @@ import ChatWindow from '@/components/ChatWindow';
 import UserSearch from '@/components/UserSearch';
 import BottomTabBar, { BottomTab } from '@/components/BottomTabBar';
 import SettingsDrawer from '@/components/SettingsDrawer';
+import Tooltip from '@/components/Tooltip';
 
 interface Chat {
   _id: string;
@@ -246,17 +247,19 @@ export default function ChatPage() {
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-semibold">Chats</h1>
-            <button
-              onClick={() => {
-                focusChat(null);
-                setShowUserSearch(true);
-              }}
-              className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 flex items-center space-x-2"
-              title="Keyboard shortcut: Cmd/Ctrl + K"
-            >
-              <span>New Chat</span>
-              <kbd className="bg-blue-600 text-xs px-1 py-0.5 rounded">⌘K</kbd>
-            </button>
+            <Tooltip label="New Chat (⌘/Ctrl + K)">
+              <button
+                onClick={() => {
+                  focusChat(null);
+                  setShowUserSearch(true);
+                }}
+                className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 flex items-center space-x-2"
+                title="Keyboard shortcut: Cmd/Ctrl + K"
+              >
+                <span>New Chat</span>
+                <kbd className="bg-blue-600 text-xs px-1 py-0.5 rounded">⌘K</kbd>
+              </button>
+            </Tooltip>
           </div>
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center">

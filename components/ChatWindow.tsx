@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import MessageInput from '@/components/MessageInput';
 import { useRealtime } from '@/contexts/RealtimeContext';
 import SettingsDrawer from '@/components/SettingsDrawer';
+import Tooltip from '@/components/Tooltip';
 
 interface Message {
   _id: string;
@@ -208,7 +209,7 @@ export default function ChatWindow({ chat, currentUser, onMessageSent, onBack }:
   return (
     <div className="flex-1 flex h-full flex-col bg-gray-50">
       {/* Chat Header */}
-      <div className="bg-white border-b border-gray-200 p-4">
+      <div className="chat-header sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-gray-200 p-4">
         <div className="flex items-center">
           {/* Mobile back button */}
           {onBack && (
@@ -241,15 +242,17 @@ export default function ChatWindow({ chat, currentUser, onMessageSent, onBack }:
             </p>
           </div>
           <div className="ml-auto">
-            <button
-              onClick={() => setSettingsOpen(true)}
-              className="hidden md:inline-flex rounded-lg p-2 hover:bg-gray-100 transition-colors"
-              aria-label="Open settings"
-            >
-              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.983 4.5a1.5 1.5 0 012.598-1.06l.53.53a1.5 1.5 0 001.06.44h.75a1.5 1.5 0 011.5 1.5v.75a1.5 1.5 0 00.44 1.06l.53.53a1.5 1.5 0 010 2.121l-.53.53a1.5 1.5 0 00-.44 1.06v.75a1.5 1.5 0 01-1.5 1.5h-.75a1.5 1.5 0 00-1.06.44l-.53.53a1.5 1.5 0 01-2.121 0l-.53-.53a1.5 1.5 0 00-1.06-.44h-.75a1.5 1.5 0 01-1.5-1.5v-.75a1.5 1.5 0 00-.44-1.06l-.53-.53a1.5 1.5 0 010-2.121l.53-.53a1.5 1.5 0 00.44-1.06v-.75a1.5 1.5 0 011.5-1.5h.75a1.5 1.5 0 001.06-.44l.53-.53a1.5 1.5 0 01.44-.34z" />
-              </svg>
-            </button>
+            <Tooltip label="Settings">
+              <button
+                onClick={() => setSettingsOpen(true)}
+                className="hidden md:inline-flex rounded-lg p-2 hover:bg-gray-100 transition-colors"
+                aria-label="Open settings"
+              >
+                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.983 4.5a1.5 1.5 0 012.598-1.06l.53.53a1.5 1.5 0 001.06.44h.75a1.5 1.5 0 011.5 1.5v.75a1.5 1.5 0 00.44 1.06l.53.53a1.5 1.5 0 010 2.121l-.53.53a1.5 1.5 0 00-.44 1.06v.75a1.5 1.5 0 01-1.5 1.5h-.75a1.5 1.5 0 00-1.06.44l-.53.53a1.5 1.5 0 01-2.121 0l-.53-.53a1.5 1.5 0 00-1.06-.44h-.75a1.5 1.5 0 01-1.5-1.5v-.75a1.5 1.5 0 00-.44-1.06l-.53-.53a1.5 1.5 0 010-2.121l.53-.53a1.5 1.5 0 00.44-1.06v-.75a1.5 1.5 0 011.5-1.5h.75a1.5 1.5 0 001.06-.44l.53-.53a1.5 1.5 0 01.44-.34z" />
+                </svg>
+              </button>
+            </Tooltip>
           </div>
         </div>
       </div>

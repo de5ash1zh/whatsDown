@@ -3,6 +3,7 @@
 import React from "react";
 import { SignOutButton, UserButton } from "@clerk/nextjs";
 import Logo from "@/components/Logo";
+import Tooltip from "@/components/Tooltip";
 
 export default function TopBar() {
   return (
@@ -13,13 +14,19 @@ export default function TopBar() {
           <span className="text-sm text-white/90 font-semibold tracking-wide">WhatsDown</span>
         </div>
         <div className="flex items-center gap-2">
-          <SignOutButton>
-            <button className="text-xs px-3 py-1.5 rounded-md border border-white/15 text-white/90 hover:border-white/25 hover:bg-white/5 transition dur-200 ease-standard">
-              Logout
-            </button>
-          </SignOutButton>
+          <Tooltip label="Logout">
+            <SignOutButton>
+              <button className="text-xs px-3 py-1.5 rounded-md border border-white/15 text-white/90 hover:border-white/25 hover:bg-white/5 transition dur-200 ease-standard">
+                Logout
+              </button>
+            </SignOutButton>
+          </Tooltip>
           <div className="h-8 w-[1px] bg-white/10 mx-1" />
-          <UserButton appearance={{ elements: { avatarBox: "w-8 h-8" } }} />
+          <Tooltip label="Account">
+            <span>
+              <UserButton appearance={{ elements: { avatarBox: "w-8 h-8" } }} />
+            </span>
+          </Tooltip>
         </div>
       </div>
     </div>
