@@ -11,6 +11,7 @@ interface RealtimeContextType {
   onNewMessage: (callback: (data: any) => void) => () => void;
   onChatUpdate: (callback: (data: any) => void) => () => void;
   onUserStatusChange: (callback: (data: any) => void) => () => void;
+  focusChat: (chatId: string | null) => void;
 }
 
 const RealtimeContext = createContext<RealtimeContextType>({
@@ -21,6 +22,7 @@ const RealtimeContext = createContext<RealtimeContextType>({
   onNewMessage: () => () => {},
   onChatUpdate: () => () => {},
   onUserStatusChange: () => () => {},
+  focusChat: () => {},
 });
 
 export const useRealtime = () => {
@@ -39,6 +41,8 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const [isConnected, setIsConnected] = useState(false);
   const [activeChats, setActiveChats] = useState<string[]>([]);
   const [lastSync, setLastSync] = useState<string>(new Date().toISOString());
+  const [focusedChat, setFocusedChat] = useState<string | null>(null);
+  const [pollMs, setPollMs] = useState<number>(2000);
   const { getToken } = useAuth();
   const { user, isLoaded } = useUser();
 
@@ -101,15 +105,45 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     if (!isLoaded || !user) return;
 
     setIsConnected(true);
-    console.log('Realtime polling started');
 
-    const interval = setInterval(pollForUpdates, 2000); // Poll every 2 seconds
+    // Visibility-based throttling & dynamic interval selection
+    const computePollMs = () => {
+      if (typeof document !== 'undefined' && document.hidden) return Infinity; // pause
+      if (focusedChat && activeChats.includes(focusedChat)) return 1000; // active chat focused
+      return 3000; // background polling
+    };
+
+    const updateInterval = () => setPollMs(computePollMs());
+    updateInterval();
+
+    const visHandler = () => updateInterval();
+    window.addEventListener('visibilitychange', visHandler);
+    window.addEventListener('focus', visHandler);
+    window.addEventListener('blur', visHandler);
+
+    let timer: number | undefined;
+    let stopped = false;
+
+    const tick = async () => {
+      if (stopped) return;
+      const intervalMs = computePollMs();
+      setPollMs(intervalMs === Infinity ? 0 : intervalMs);
+      if (intervalMs !== Infinity) {
+        await pollForUpdates();
+      }
+      timer = window.setTimeout(tick, intervalMs === Infinity ? 1000 : intervalMs);
+    };
+    tick();
 
     return () => {
-      clearInterval(interval);
+      stopped = true;
+      if (timer) window.clearTimeout(timer);
+      window.removeEventListener('visibilitychange', visHandler);
+      window.removeEventListener('focus', visHandler);
+      window.removeEventListener('blur', visHandler);
       setIsConnected(false);
     };
-  }, [isLoaded, user, pollForUpdates]);
+  }, [isLoaded, user, pollForUpdates, activeChats, focusedChat]);
 
   const sendMessage = useCallback((chatId: string, receiverClerkId: string, message: any) => {
     // Message sending is handled by the API, this is just for interface compatibility
@@ -132,6 +166,10 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       console.log('Left chat:', chatId);
       return filtered;
     });
+  }, []);
+
+  const focusChat = useCallback((chatId: string | null) => {
+    setFocusedChat(chatId);
   }, []);
 
   const onNewMessage = useCallback((callback: (data: any) => void) => {
@@ -178,6 +216,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       onNewMessage,
       onChatUpdate,
       onUserStatusChange,
+      focusChat,
     }}>
       {children}
     </RealtimeContext.Provider>

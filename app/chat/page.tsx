@@ -32,7 +32,7 @@ export default function ChatPage() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
   const router = useRouter();
-  const { isConnected, joinChat, leaveChat, onNewMessage, onChatUpdate } = useRealtime();
+  const { isConnected, joinChat, leaveChat, onNewMessage, onChatUpdate, focusChat } = useRealtime();
   
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
@@ -50,7 +50,10 @@ export default function ChatPage() {
     // Create or update user profile
     createUserProfile();
     fetchChats();
-  }, [isLoaded, user, router]);
+    return () => {
+      focusChat(null);
+    };
+  }, [isLoaded, user, router, focusChat]);
 
   // Set up real-time listeners
   useEffect(() => {
@@ -178,6 +181,7 @@ export default function ChatPage() {
   const handleChatSelect = (chat: Chat) => {
     setSelectedChat(chat);
     joinChat(chat._id);
+    focusChat(chat._id);
   };
 
   const handleNewChat = async (recipientClerkId: string) => {
@@ -229,7 +233,10 @@ export default function ChatPage() {
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-semibold">Chats</h1>
             <button
-              onClick={() => setShowUserSearch(true)}
+              onClick={() => {
+                focusChat(null);
+                setShowUserSearch(true);
+              }}
               className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 flex items-center space-x-2"
               title="Keyboard shortcut: Cmd/Ctrl + K"
             >

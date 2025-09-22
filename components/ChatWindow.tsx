@@ -58,6 +58,7 @@ export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWin
   const [loading, setLoading] = useState(true);
   const [typing, setTyping] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const otherParticipant = chat.participants.find(p => p.clerkId !== currentUser.id);
 
@@ -159,6 +160,18 @@ export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWin
   };
 
   const scrollToBottom = () => {
+    // Prefer container scroll to avoid layout jumps
+    if (messagesContainerRef.current) {
+      const el = messagesContainerRef.current;
+      // Only autoscroll if user is near bottom, or it's our own send
+      const threshold = 120; // px
+      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+      if (isNearBottom) {
+        el.scrollTop = el.scrollHeight;
+        return;
+      }
+    }
+    // Fallback
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -190,7 +203,7 @@ export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWin
   }
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex h-full flex-col bg-gray-50">
       {/* Chat Header */}
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center">
@@ -215,8 +228,8 @@ export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWin
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages (scrollable only this pane) */}
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 bg-white">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-500">Loading messages...</div>
@@ -230,7 +243,7 @@ export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWin
             </div>
           </div>
         ) : (
-          <>
+          <div className="flex flex-col gap-3">
             {messages.map((message) => {
               const isOwn = message.senderId.clerkId === currentUser.id;
               return (
@@ -239,15 +252,13 @@ export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWin
                   className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                      isOwn
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-200 text-gray-900'
+                    className={`max-w-[80%] md:max-w-[70%] px-3 py-2 rounded-xl shadow-sm ${
+                      isOwn ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-900 border border-gray-200'
                     }`}
                   >
                     <div className="text-sm">{message.content}</div>
                     <div
-                      className={`text-xs mt-1 flex items-center justify-end space-x-1 ${
+                      className={`text-[11px] mt-1 flex items-center justify-end gap-1 ${
                         isOwn ? 'text-blue-100' : 'text-gray-500'
                       }`}
                     >
@@ -265,19 +276,21 @@ export default function ChatWindow({ chat, currentUser, onMessageSent }: ChatWin
             
             {typing && (
               <div className="flex justify-start">
-                <div className="bg-gray-200 text-gray-900 max-w-xs lg:max-w-md px-4 py-2 rounded-lg">
+                <div className="bg-gray-100 text-gray-800 max-w-[70%] px-3 py-2 rounded-xl border border-gray-200">
                   <div className="text-sm italic">{typing} is typing...</div>
                 </div>
               </div>
             )}
             
             <div ref={messagesEndRef} />
-          </>
+          </div>
         )}
       </div>
 
-      {/* Message Input */}
-      <MessageInput onSendMessage={handleSendMessage} onTyping={handleTyping} />
+      {/* Message Input (sticky at bottom, page does not scroll) */}
+      <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3">
+        <MessageInput onSendMessage={handleSendMessage} onTyping={handleTyping} />
+      </div>
     </div>
   );
 }
